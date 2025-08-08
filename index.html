@@ -112,8 +112,8 @@
 
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script>
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('quoteDate').value = today;
+  // Set today as default date
+  document.getElementById('quoteDate').value = new Date().toISOString().slice(0,10);
 
   const windowsContainer = document.getElementById('windowsContainer');
   const totalAreaEl = document.getElementById('totalArea');
@@ -124,13 +124,9 @@
   const summaryArea = document.getElementById('summaryArea');
   const summaryPrice = document.getElementById('summaryPrice');
 
-  let windowCounter = 0;
-
   function createWindowRow() {
-    windowCounter++;
     const div = document.createElement('div');
     div.className = 'window-row';
-    div.dataset.index = windowCounter;
 
     div.innerHTML = `
       <div class="window-flex">
@@ -248,11 +244,14 @@
   }
 
   document.getElementById('exportBtn').addEventListener('click', () => {
-    if (!document.getElementById('quoteDate').value) {
+    const date = document.getElementById('quoteDate').value;
+    const customer = document.getElementById('customerName').value.trim();
+
+    if (!date) {
       alert('Please select a date.');
       return;
     }
-    if (!document.getElementById('customerName').value.trim()) {
+    if (!customer) {
       alert('Please enter customer name.');
       return;
     }
@@ -262,15 +261,17 @@
     }
 
     const data = [];
+    // Header row
     data.push([
       "Date", "Customer Name", "Window Name", "Blind Type", "Cassette Shape", "Fabric Type", "Chain/Motor Side",
       "Width (m)", "Length (m)", "Motorized", "Area (m²)", "Price ($)"
     ]);
 
+    // Data rows
     [...windowsContainer.children].forEach(div => {
-      const row = [
-        document.getElementById('quoteDate').value,
-        document.getElementById('customerName').value.trim(),
+      data.push([
+        date,
+        customer,
         div.querySelector('.win-name').value.trim(),
         div.querySelector('.win-blind-type').value,
         div.querySelector('.win-cassette').value,
@@ -281,10 +282,10 @@
         div.querySelector('.win-motorized').value,
         parseFloat(div.querySelector('.win-area').textContent),
         parseFloat(div.querySelector('.win-price').textContent)
-      ];
-      data.push(row);
+      ]);
     });
 
+    // Totals row
     data.push([
       "", "", "TOTAL", "", "", "", "",
       "", "",
@@ -293,15 +294,21 @@
       parseFloat(totalPriceEl.textContent)
     ]);
 
+    // Generate worksheet & workbook
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Blinds Quote");
-    XLSX.writeFile(wb, `Blinds_Quote_${document.getElementById('customerName').value.trim().replace(/\s+/g,'_')}_${document.getElementById('quoteDate').value}.xlsx`);
+
+    // Filename safe version of customer name
+    const safeCustomer = customer.replace(/[^\w]/g, '_');
+    XLSX.writeFile(wb, `Blinds_Quote_${safeCustomer}_${date}.xlsx`);
   });
 
   document.getElementById('addWindowBtn').addEventListener('click', addWindow);
 
+  // Add initial window on page load
   addWindow();
+
 </script>
 
 </body>
