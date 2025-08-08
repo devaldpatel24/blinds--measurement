@@ -1,272 +1,130 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Zebra & Roller Blinds Measurement</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blinds Measurement Form</title>
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    max-width: 650px;
-    margin: auto;
-    background: #f9f9f9;
-    padding: 15px;
-  }
-  h1 {
-    text-align: center;
-    color: #333;
-  }
-  .window-form {
-    border: 1px solid #ccc;
-    padding: 15px;
-    margin-bottom: 15px;
-    border-radius: 8px;
-    background: #fff;
-    position: relative;
-  }
-  label {
-    display: block;
-    margin-top: 10px;
-    font-weight: bold;
-  }
-  input[type="text"],
-  input[type="number"],
-  input[type="date"] {
-    width: 100%;
-    padding: 10px;
-    margin-top: 5px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    box-sizing: border-box;
-    font-size: 16px;
-  }
-  .radio-group {
-    margin-top: 5px;
-  }
-  .radio-group label {
-    font-weight: normal;
-    margin-right: 15px;
-  }
-  button {
-    margin-top: 10px;
-    padding: 10px 15px;
-    font-size: 16px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  #addWindowBtn {
-    background-color: #28a745;
-    color: white;
-    width: 100%;
-  }
-  #addWindowBtn:hover {
-    background-color: #1e7e34;
-  }
-  .deleteBtn {
-    background-color: #dc3545;
-    color: white;
-    position: absolute;
-    top: 10px;
-    right: 10px;
-  }
-  .deleteBtn:hover {
-    background-color: #a71d2a;
-  }
-  #exportBtn {
-    background-color: #0078d7;
-    color: white;
-    width: 100%;
-  }
-  #exportBtn:hover {
-    background-color: #005fa3;
-  }
-  #totalArea {
-    font-weight: bold;
-    background: #e3f2fd;
-    padding: 10px;
-    margin-top: 20px;
-    border-radius: 5px;
-    text-align: center;
-    font-size: 18px;
-  }
+    body { font-family: Arial, sans-serif; padding: 10px; max-width: 600px; margin: auto; }
+    h2 { text-align: center; }
+    .window { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 5px; background: #f9f9f9; }
+    label { display: block; margin-top: 8px; font-weight: bold; }
+    input, select, button { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+    button { margin-top: 10px; }
+    .inline { display: flex; gap: 10px; }
+    .inline input { flex: 1; }
+    .delete-btn { background-color: #e74c3c; color: white; border: none; padding: 6px; margin-top: 8px; cursor: pointer; border-radius: 4px; }
+    .delete-btn:hover { background-color: #c0392b; }
+    .total-area { font-weight: bold; margin-top: 10px; text-align: right; }
 </style>
 </head>
 <body>
 
-<h1>Blinds Measurement Form</h1>
+<h2>Blinds Measurement Form</h2>
+<label>Date:</label>
+<input type="date" id="date" required>
+<label>Customer Name:</label>
+<input type="text" id="customerName" placeholder="Enter customer name" required>
 
-<form id="blindsForm">
-  <label for="date">Date</label>
-  <input type="date" id="date" name="date" required>
+<div id="windows"></div>
 
-  <label for="customerName">Customer Name</label>
-  <input type="text" id="customerName" name="customerName" required>
+<button onclick="addWindow()">Add Window</button>
+<div class="total-area">Total Area: <span id="totalArea">0</span> m²</div>
+<button onclick="exportToExcel()">Export to Excel</button>
 
-  <div class="window-form" data-index="1">
-    <h3>Window 1</h3>
-    <label>Room Name</label>
-    <input type="text" id="roomName1" required>
-
-    <label>Width (meters)</label>
-    <input type="number" id="width1" step="0.0001" min="0" required>
-
-    <label>Length (meters)</label>
-    <input type="number" id="length1" step="0.0001" min="0" required>
-
-    <label>Blind Type</label>
-    <div class="radio-group">
-      <label><input type="radio" name="blindType1" value="Zebra" required> Zebra</label>
-      <label><input type="radio" name="blindType1" value="Roller"> Roller</label>
-    </div>
-
-    <label>Operation</label>
-    <div class="radio-group">
-      <label><input type="radio" name="operation1" value="Manual" required> Manual</label>
-      <label><input type="radio" name="operation1" value="Motorised"> Motorised</label>
-    </div>
-
-    <label>Cassette Shape</label>
-    <div class="radio-group">
-      <label><input type="radio" name="cassetteShape1" value="Square" required> Square</label>
-      <label><input type="radio" name="cassetteShape1" value="Round"> Round</label>
-    </div>
-
-    <label>Fabric Type</label>
-    <input type="text" id="fabricType1" required>
-
-    <button type="button" class="deleteBtn" onclick="deleteWindow(1)">Delete</button>
-  </div>
-
-  <button type="button" id="addWindowBtn">Add Next Window</button>
-  <div id="totalArea">Total Area: 0.0000 m²</div>
-  <button type="submit" id="exportBtn">Export to Excel</button>
-</form>
-
-<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script>
-let windowCount = 1;
+let windowCount = 0;
 
-function updateTotalArea() {
-  let total = 0;
-  document.querySelectorAll('.window-form').forEach((formEl) => {
-    const width = parseFloat(formEl.querySelector('input[id^="width"]').value) || 0;
-    const length = parseFloat(formEl.querySelector('input[id^="length"]').value) || 0;
-    total += width * length;
-  });
-  document.getElementById("totalArea").innerText = `Total Area: ${total.toFixed(4)} m²`;
+function addWindow() {
+    windowCount++;
+    const container = document.getElementById("windows");
+
+    const windowDiv = document.createElement("div");
+    windowDiv.className = "window";
+
+    windowDiv.innerHTML = `
+        <label>Window Name:</label>
+        <input type="text" name="windowName" placeholder="Enter window name" required>
+
+        <label>Blind Type:</label>
+        <select name="blindType">
+            <option value="Zebra">Zebra</option>
+            <option value="Roller">Roller</option>
+        </select>
+
+        <label>Width (m):</label>
+        <input type="number" name="width" step="0.0001" min="0" required oninput="calculateTotalArea()">
+
+        <label>Length (m):</label>
+        <input type="number" name="length" step="0.0001" min="0" required oninput="calculateTotalArea()">
+
+        <label>Operation:</label>
+        <select name="operation">
+            <option value="Left">Left</option>
+            <option value="Right">Right</option>
+        </select>
+
+        <label>Cassette Shape:</label>
+        <select name="cassetteShape">
+            <option value="Round">Round</option>
+            <option value="Square">Square</option>
+        </select>
+
+        <label>Fabric Type:</label>
+        <input type="text" name="fabricType" placeholder="Enter fabric type">
+
+        <button class="delete-btn" onclick="deleteWindow(this)">Delete Window</button>
+    `;
+
+    container.appendChild(windowDiv);
 }
 
-function createWindowForm(index) {
-  const div = document.createElement('div');
-  div.className = 'window-form';
-  div.setAttribute('data-index', index);
-  div.innerHTML = `
-    <h3>Window ${index}</h3>
-    <label>Room Name</label>
-    <input type="text" id="roomName${index}" required>
-
-    <label>Width (meters)</label>
-    <input type="number" id="width${index}" step="0.0001" min="0" required>
-
-    <label>Length (meters)</label>
-    <input type="number" id="length${index}" step="0.0001" min="0" required>
-
-    <label>Blind Type</label>
-    <div class="radio-group">
-      <label><input type="radio" name="blindType${index}" value="Zebra" required> Zebra</label>
-      <label><input type="radio" name="blindType${index}" value="Roller"> Roller</label>
-    </div>
-
-    <label>Operation</label>
-    <div class="radio-group">
-      <label><input type="radio" name="operation${index}" value="Manual" required> Manual</label>
-      <label><input type="radio" name="operation${index}" value="Motorised"> Motorised</label>
-    </div>
-
-    <label>Cassette Shape</label>
-    <div class="radio-group">
-      <label><input type="radio" name="cassetteShape${index}" value="Square" required> Square</label>
-      <label><input type="radio" name="cassetteShape${index}" value="Round"> Round</label>
-    </div>
-
-    <label>Fabric Type</label>
-    <input type="text" id="fabricType${index}" required>
-
-    <button type="button" class="deleteBtn" onclick="deleteWindow(${index})">Delete</button>
-  `;
-  div.querySelector(`#width${index}`).addEventListener("input", updateTotalArea);
-  div.querySelector(`#length${index}`).addEventListener("input", updateTotalArea);
-  return div;
+function deleteWindow(button) {
+    button.parentElement.remove();
+    calculateTotalArea();
 }
 
-function deleteWindow(index) {
-  if (document.querySelectorAll('.window-form').length === 1) {
-    alert("At least one window is required.");
-    return;
-  }
-  document.querySelector(`[data-index="${index}"]`).remove();
-  reindexWindows();
+function calculateTotalArea() {
+    let total = 0;
+    document.querySelectorAll(".window").forEach(windowDiv => {
+        const width = parseFloat(windowDiv.querySelector('input[name="width"]').value) || 0;
+        const length = parseFloat(windowDiv.querySelector('input[name="length"]').value) || 0;
+        total += width * length;
+    });
+    document.getElementById("totalArea").innerText = total.toFixed(4);
 }
 
-function reindexWindows() {
-  const forms = document.querySelectorAll('.window-form');
-  forms.forEach((formEl, i) => {
-    const newIndex = i + 1;
-    formEl.setAttribute('data-index', newIndex);
-    formEl.querySelector('h3').innerText = `Window ${newIndex}`;
+function exportToExcel() {
+    const date = document.getElementById("date").value;
+    const customerName = document.getElementById("customerName").value;
 
-    // Update IDs and names
-    formEl.querySelectorAll('input').forEach(input => {
-      if (input.id) {
-        const baseId = input.id.replace(/\d+$/, '');
-        input.id = `${baseId}${newIndex}`;
-      }
-      if (input.name) {
-        const baseName = input.name.replace(/\d+$/, '');
-        input.name = `${baseName}${newIndex}`;
-      }
+    if (!date || !customerName) {
+        alert("Please fill Date and Customer Name");
+        return;
+    }
+
+    const rows = [["Date", "Customer Name", "Window Name", "Blind Type", "Width (m)", "Length (m)", "Operation", "Cassette Shape", "Fabric Type", "Area (m²)"]];
+    document.querySelectorAll(".window").forEach(windowDiv => {
+        const windowName = windowDiv.querySelector('input[name="windowName"]').value;
+        const blindType = windowDiv.querySelector('select[name="blindType"]').value;
+        const width = parseFloat(windowDiv.querySelector('input[name="width"]').value) || 0;
+        const length = parseFloat(windowDiv.querySelector('input[name="length"]').value) || 0;
+        const operation = windowDiv.querySelector('select[name="operation"]').value;
+        const cassetteShape = windowDiv.querySelector('select[name="cassetteShape"]').value;
+        const fabricType = windowDiv.querySelector('input[name="fabricType"]').value;
+        const area = width * length;
+
+        rows.push([date, customerName, windowName, blindType, width.toFixed(4), length.toFixed(4), operation, cassetteShape, fabricType, area.toFixed(4)]);
     });
 
-    // Update delete button onclick
-    formEl.querySelector('.deleteBtn').setAttribute('onclick', `deleteWindow(${newIndex})`);
-  });
-  windowCount = forms.length;
-  updateTotalArea();
+    let csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", `${customerName}_${date}_blinds_measurements.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
-
-document.getElementById("addWindowBtn").addEventListener("click", () => {
-  windowCount++;
-  const newWindowForm = createWindowForm(windowCount);
-  document.getElementById("blindsForm").insertBefore(newWindowForm, document.getElementById("addWindowBtn"));
-});
-
-document.querySelectorAll('input[type="number"]').forEach(el => el.addEventListener("input", updateTotalArea));
-
-document.getElementById("blindsForm").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const data = [];
-  const date = document.getElementById("date").value;
-  const customerName = document.getElementById("customerName").value;
-  document.querySelectorAll('.window-form').forEach((formEl) => {
-    const idx = formEl.getAttribute('data-index');
-    data.push({
-      Date: date,
-      "Customer Name": customerName,
-      "Room Name": document.getElementById(`roomName${idx}`).value,
-      "Width (m)": parseFloat(document.getElementById(`width${idx}`).value),
-      "Length (m)": parseFloat(document.getElementById(`length${idx}`).value),
-      "Blind Type": document.querySelector(`input[name="blindType${idx}"]:checked`).value,
-      "Operation": document.querySelector(`input[name="operation${idx}"]:checked`).value,
-      "Cassette Shape": document.querySelector(`input[name="cassetteShape${idx}"]:checked`).value,
-      "Fabric Type": document.getElementById(`fabricType${idx}`).value
-    });
-  });
-  const ws = XLSX.utils.json_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Blinds Measurements');
-  XLSX.writeFile(wb, `blinds_measurements_${customerName}.xlsx`);
-});
 </script>
+
 </body>
 </html>
