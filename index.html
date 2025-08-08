@@ -112,7 +112,6 @@
 
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script>
-  // Initialize date input to today
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('quoteDate').value = today;
 
@@ -124,12 +123,6 @@
   const summaryCustomer = document.getElementById('summaryCustomer');
   const summaryArea = document.getElementById('summaryArea');
   const summaryPrice = document.getElementById('summaryPrice');
-
-  let windows = [];
-
-  const fabricOptions = [
-    "Light Filter", "Blackout", "Screen", "Textured", "Plain"
-  ];
 
   function createWindowRow(index) {
     const div = document.createElement('div');
@@ -159,9 +152,7 @@
         </div>
         <div>
           <label>Fabric Type</label>
-          <select class="win-fabric">
-            ${fabricOptions.map(f => `<option value="${f}">${f}</option>`).join('')}
-          </select>
+          <input type="text" class="win-fabric" placeholder="Fabric type" />
         </div>
         <div>
           <label>Chain/Motor Side</label>
@@ -216,7 +207,7 @@
   }
 
   function addWindow() {
-    const newRow = createWindowRow(windows.length);
+    const newRow = createWindowRow(windowsContainer.children.length);
     windowsContainer.appendChild(newRow);
     updateAll();
   }
@@ -226,11 +217,6 @@
     let totalPrice = 0;
 
     [...windowsContainer.children].forEach(div => {
-      const name = div.querySelector('.win-name').value.trim();
-      const blindType = div.querySelector('.win-blind-type').value;
-      const cassette = div.querySelector('.win-cassette').value;
-      const fabric = div.querySelector('.win-fabric').value;
-      const chainSide = div.querySelector('.win-chain-side').value;
       const width = parseFloat(div.querySelector('.win-width').value) || 0;
       const length = parseFloat(div.querySelector('.win-length').value) || 0;
       const motorized = div.querySelector('.win-motorized').value === "Yes";
@@ -258,7 +244,6 @@
     quoteSummary.style.display = (totalArea > 0) ? 'block' : 'none';
   }
 
-  // Export to Excel using SheetJS
   document.getElementById('exportBtn').addEventListener('click', () => {
     if (!document.getElementById('quoteDate').value) {
       alert('Please select a date.');
@@ -274,7 +259,6 @@
     }
 
     const data = [];
-    // Header row
     data.push([
       "Date", "Customer Name", "Window Name", "Blind Type", "Cassette Shape", "Fabric Type", "Chain/Motor Side",
       "Width (m)", "Length (m)", "Motorized", "Area (m²)", "Price ($)"
@@ -298,7 +282,6 @@
       data.push(row);
     });
 
-    // Add totals row
     data.push([
       "", "", "TOTAL", "", "", "", "",
       "", "",
@@ -313,7 +296,9 @@
     XLSX.writeFile(wb, `Blinds_Quote_${document.getElementById('customerName').value.trim().replace(/\s+/g,'_')}_${document.getElementById('quoteDate').value}.xlsx`);
   });
 
-  // Initialize with one window row
+  document.getElementById('addWindowBtn').addEventListener('click', addWindow);
+
+  // Add first window by default
   addWindow();
 </script>
 
