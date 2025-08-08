@@ -1,128 +1,109 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
+<title>Blinds Measurement & Quote</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blinds Measurement Form</title>
 <style>
-    body { font-family: Arial, sans-serif; padding: 10px; max-width: 600px; margin: auto; }
-    h2 { text-align: center; }
-    .window { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 5px; background: #f9f9f9; }
-    label { display: block; margin-top: 8px; font-weight: bold; }
-    input, select, button { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
-    button { margin-top: 10px; }
-    .inline { display: flex; gap: 10px; }
-    .inline input { flex: 1; }
-    .delete-btn { background-color: #e74c3c; color: white; border: none; padding: 6px; margin-top: 8px; cursor: pointer; border-radius: 4px; }
-    .delete-btn:hover { background-color: #c0392b; }
-    .total-area { font-weight: bold; margin-top: 10px; text-align: right; }
+  body { font-family: Arial, sans-serif; padding: 10px; }
+  input, select, button { font-size: 16px; padding: 6px; margin: 4px 0; width: 100%; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+  th { background-color: #f2f2f2; }
+  .total { font-weight: bold; background-color: #e8f5e9; }
+  .delete-btn { background: red; color: white; border: none; padding: 5px 10px; cursor: pointer; }
 </style>
 </head>
 <body>
 
-<h2>Blinds Measurement Form</h2>
+<h2>Blinds Measurement & Quote</h2>
+
 <label>Date:</label>
-<input type="date" id="date" required>
+<input type="date" id="quoteDate">
+
 <label>Customer Name:</label>
-<input type="text" id="customerName" placeholder="Enter customer name" required>
+<input type="text" id="customerName" placeholder="Enter customer name">
 
-<div id="windows"></div>
+<button onclick="addWindow()">+ Add Window</button>
 
-<button onclick="addWindow()">Add Window</button>
-<div class="total-area">Total Area: <span id="totalArea">0</span> m²</div>
-<button onclick="exportToExcel()">Export to Excel</button>
+<table id="blindsTable">
+  <tr>
+    <th>Window Name</th>
+    <th>Width (m)</th>
+    <th>Length (m)</th>
+    <th>Area (m²)</th>
+    <th>Operation</th>
+    <th>Price ($)</th>
+    <th>Action</th>
+  </tr>
+</table>
+
+<table>
+  <tr class="total">
+    <td colspan="3">TOTAL</td>
+    <td id="totalArea">0.0000</td>
+    <td></td>
+    <td id="totalPrice">$0.00</td>
+    <td></td>
+  </tr>
+</table>
 
 <script>
-let windowCount = 0;
-
 function addWindow() {
-    windowCount++;
-    const container = document.getElementById("windows");
+  let table = document.getElementById("blindsTable");
+  let row = table.insertRow(-1);
 
-    const windowDiv = document.createElement("div");
-    windowDiv.className = "window";
+  let nameCell = row.insertCell(0);
+  let widthCell = row.insertCell(1);
+  let lengthCell = row.insertCell(2);
+  let areaCell = row.insertCell(3);
+  let opCell = row.insertCell(4);
+  let priceCell = row.insertCell(5);
+  let actionCell = row.insertCell(6);
 
-    windowDiv.innerHTML = `
-        <label>Window Name:</label>
-        <input type="text" name="windowName" placeholder="Enter window name" required>
-
-        <label>Blind Type:</label>
-        <select name="blindType">
-            <option value="Zebra">Zebra</option>
-            <option value="Roller">Roller</option>
-        </select>
-
-        <label>Width (m):</label>
-        <input type="number" name="width" step="0.0001" min="0" required oninput="calculateTotalArea()">
-
-        <label>Length (m):</label>
-        <input type="number" name="length" step="0.0001" min="0" required oninput="calculateTotalArea()">
-
-        <label>Operation:</label>
-        <select name="operation">
-            <option value="Left">Left</option>
-            <option value="Right">Right</option>
-        </select>
-
-        <label>Cassette Shape:</label>
-        <select name="cassetteShape">
-            <option value="Round">Round</option>
-            <option value="Square">Square</option>
-        </select>
-
-        <label>Fabric Type:</label>
-        <input type="text" name="fabricType" placeholder="Enter fabric type">
-
-        <button class="delete-btn" onclick="deleteWindow(this)">Delete Window</button>
-    `;
-
-    container.appendChild(windowDiv);
+  nameCell.innerHTML = `<input type="text" placeholder="Window name" oninput="updateTotals()">`;
+  widthCell.innerHTML = `<input type="number" step="0.0001" placeholder="Width" oninput="updateTotals()">`;
+  lengthCell.innerHTML = `<input type="number" step="0.0001" placeholder="Length" oninput="updateTotals()">`;
+  areaCell.innerHTML = `0.0000`;
+  opCell.innerHTML = `
+    <select onchange="updateTotals()">
+      <option value="Manual">Manual</option>
+      <option value="Motorised">Motorised</option>
+    </select>
+  `;
+  priceCell.innerHTML = `$0.00`;
+  actionCell.innerHTML = `<button class="delete-btn" onclick="deleteRow(this)">X</button>`;
 }
 
-function deleteWindow(button) {
-    button.parentElement.remove();
-    calculateTotalArea();
+function deleteRow(btn) {
+  let row = btn.parentNode.parentNode;
+  row.parentNode.removeChild(row);
+  updateTotals();
 }
 
-function calculateTotalArea() {
-    let total = 0;
-    document.querySelectorAll(".window").forEach(windowDiv => {
-        const width = parseFloat(windowDiv.querySelector('input[name="width"]').value) || 0;
-        const length = parseFloat(windowDiv.querySelector('input[name="length"]').value) || 0;
-        total += width * length;
-    });
-    document.getElementById("totalArea").innerText = total.toFixed(4);
-}
+function updateTotals() {
+  let table = document.getElementById("blindsTable");
+  let totalArea = 0;
+  let totalPrice = 0;
 
-function exportToExcel() {
-    const date = document.getElementById("date").value;
-    const customerName = document.getElementById("customerName").value;
+  for (let i = 1; i < table.rows.length; i++) {
+    let width = parseFloat(table.rows[i].cells[1].children[0].value) || 0;
+    let length = parseFloat(table.rows[i].cells[2].children[0].value) || 0;
+    let area = width * length;
+    table.rows[i].cells[3].innerHTML = area.toFixed(4);
 
-    if (!date || !customerName) {
-        alert("Please fill Date and Customer Name");
-        return;
+    let operation = table.rows[i].cells[4].children[0].value;
+    let price = area * 35;
+    if (operation === "Motorised") {
+      price += 100;
     }
+    table.rows[i].cells[5].innerHTML = `$${price.toFixed(2)}`;
 
-    const rows = [["Date", "Customer Name", "Window Name", "Blind Type", "Width (m)", "Length (m)", "Operation", "Cassette Shape", "Fabric Type", "Area (m²)"]];
-    document.querySelectorAll(".window").forEach(windowDiv => {
-        const windowName = windowDiv.querySelector('input[name="windowName"]').value;
-        const blindType = windowDiv.querySelector('select[name="blindType"]').value;
-        const width = parseFloat(windowDiv.querySelector('input[name="width"]').value) || 0;
-        const length = parseFloat(windowDiv.querySelector('input[name="length"]').value) || 0;
-        const operation = windowDiv.querySelector('select[name="operation"]').value;
-        const cassetteShape = windowDiv.querySelector('select[name="cassetteShape"]').value;
-        const fabricType = windowDiv.querySelector('input[name="fabricType"]').value;
-        const area = width * length;
+    totalArea += area;
+    totalPrice += price;
+  }
 
-        rows.push([date, customerName, windowName, blindType, width.toFixed(4), length.toFixed(4), operation, cassetteShape, fabricType, area.toFixed(4)]);
-    });
-
-    let csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
-    const link = document.createElement("a");
-    link.setAttribute("href", encodeURI(csvContent));
-    link.setAttribute("download", `${customerName}_${date}_blinds_measurements.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  document.getElementById("totalArea").innerHTML = totalArea.toFixed(4);
+  document.getElementById("totalPrice").innerHTML = `$${totalPrice.toFixed(2)}`;
 }
 </script>
 
