@@ -1,110 +1,320 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Blinds Measurement & Quote</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  body { font-family: Arial, sans-serif; padding: 10px; }
-  input, select, button { font-size: 16px; padding: 6px; margin: 4px 0; width: 100%; }
-  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-  th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
-  th { background-color: #f2f2f2; }
-  .total { font-weight: bold; background-color: #e8f5e9; }
-  .delete-btn { background: red; color: white; border: none; padding: 5px 10px; cursor: pointer; }
+  body {
+    font-family: Arial, sans-serif;
+    padding: 12px;
+    background: #f8f9fa;
+    max-width: 900px;
+    margin: auto;
+  }
+  h2 {
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  label {
+    font-weight: bold;
+    margin-top: 8px;
+    display: block;
+  }
+  input[type=text], input[type=number], select {
+    width: 100%;
+    padding: 6px;
+    box-sizing: border-box;
+    margin-top: 3px;
+  }
+  button {
+    padding: 10px 15px;
+    margin-top: 12px;
+    font-size: 1rem;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background-color: #007bff;
+    color: white;
+  }
+  button:hover {
+    background-color: #0056b3;
+  }
+  .delete-btn {
+    background-color: #dc3545 !important;
+    margin-top: 24px;
+  }
+  .delete-btn:hover {
+    background-color: #a71d2a !important;
+  }
+  .window-row {
+    background: white;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 14px;
+    box-shadow: 0 0 6px #ccc;
+  }
+  .window-flex {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .window-flex > div {
+    flex: 1 1 120px;
+    min-width: 120px;
+  }
+  .window-flex > div.full-width {
+    flex-basis: 100%;
+  }
+  .summary {
+    background: white;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 20px;
+    box-shadow: 0 0 6px #ccc;
+  }
+  @media (max-width: 600px) {
+    .window-flex > div {
+      flex-basis: 100%;
+    }
+  }
 </style>
 </head>
 <body>
 
 <h2>Blinds Measurement & Quote</h2>
 
-<label>Date:</label>
-<input type="date" id="quoteDate">
+<label for="quoteDate">Date:</label>
+<input type="date" id="quoteDate" />
 
-<label>Customer Name:</label>
-<input type="text" id="customerName" placeholder="Enter customer name">
+<label for="customerName">Customer Name:</label>
+<input type="text" id="customerName" placeholder="Enter customer name" />
 
-<button onclick="addWindow()">+ Add Window</button>
+<button id="addWindowBtn">+ Add Window</button>
 
-<table id="blindsTable">
-  <tr>
-    <th>Window Name</th>
-    <th>Width (m)</th>
-    <th>Length (m)</th>
-    <th>Area (m²)</th>
-    <th>Operation</th>
-    <th>Price ($)</th>
-    <th>Action</th>
-  </tr>
-</table>
+<div id="windowsContainer"></div>
 
-<table>
-  <tr class="total">
-    <td colspan="3">TOTAL</td>
-    <td id="totalArea">0.0000</td>
-    <td></td>
-    <td id="totalPrice">$0.00</td>
-    <td></td>
-  </tr>
-</table>
+<div class="summary">
+  <h3>Totals</h3>
+  <p><strong>Total Area:</strong> <span id="totalArea">0.0000</span> m²</p>
+  <p><strong>Total Price:</strong> $<span id="totalPrice">0.00</span></p>
+</div>
 
+<div class="summary" id="quoteSummary" style="display:none;">
+  <h3>Quote Summary</h3>
+  <p><strong>Date:</strong> <span id="summaryDate"></span></p>
+  <p><strong>Customer Name:</strong> <span id="summaryCustomer"></span></p>
+  <p><strong>Total Area:</strong> <span id="summaryArea"></span> m²</p>
+  <p><strong>Total Price:</strong> $<span id="summaryPrice"></span></p>
+</div>
+
+<button id="exportBtn">Export to Excel</button>
+
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script>
-function addWindow() {
-  let table = document.getElementById("blindsTable");
-  let row = table.insertRow(-1);
+  // Initialize date input to today
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('quoteDate').value = today;
 
-  let nameCell = row.insertCell(0);
-  let widthCell = row.insertCell(1);
-  let lengthCell = row.insertCell(2);
-  let areaCell = row.insertCell(3);
-  let opCell = row.insertCell(4);
-  let priceCell = row.insertCell(5);
-  let actionCell = row.insertCell(6);
+  const windowsContainer = document.getElementById('windowsContainer');
+  const totalAreaEl = document.getElementById('totalArea');
+  const totalPriceEl = document.getElementById('totalPrice');
+  const quoteSummary = document.getElementById('quoteSummary');
+  const summaryDate = document.getElementById('summaryDate');
+  const summaryCustomer = document.getElementById('summaryCustomer');
+  const summaryArea = document.getElementById('summaryArea');
+  const summaryPrice = document.getElementById('summaryPrice');
 
-  nameCell.innerHTML = `<input type="text" placeholder="Window name" oninput="updateTotals()">`;
-  widthCell.innerHTML = `<input type="number" step="0.0001" placeholder="Width" oninput="updateTotals()">`;
-  lengthCell.innerHTML = `<input type="number" step="0.0001" placeholder="Length" oninput="updateTotals()">`;
-  areaCell.innerHTML = `0.0000`;
-  opCell.innerHTML = `
-    <select onchange="updateTotals()">
-      <option value="Manual">Manual</option>
-      <option value="Motorised">Motorised</option>
-    </select>
-  `;
-  priceCell.innerHTML = `$0.00`;
-  actionCell.innerHTML = `<button class="delete-btn" onclick="deleteRow(this)">X</button>`;
-}
+  let windows = [];
 
-function deleteRow(btn) {
-  let row = btn.parentNode.parentNode;
-  row.parentNode.removeChild(row);
-  updateTotals();
-}
+  const fabricOptions = [
+    "Light Filter", "Blackout", "Screen", "Textured", "Plain"
+  ];
 
-function updateTotals() {
-  let table = document.getElementById("blindsTable");
-  let totalArea = 0;
-  let totalPrice = 0;
+  function createWindowRow(index) {
+    const div = document.createElement('div');
+    div.className = 'window-row';
+    div.dataset.index = index;
 
-  for (let i = 1; i < table.rows.length; i++) {
-    let width = parseFloat(table.rows[i].cells[1].children[0].value) || 0;
-    let length = parseFloat(table.rows[i].cells[2].children[0].value) || 0;
-    let area = width * length;
-    table.rows[i].cells[3].innerHTML = area.toFixed(4);
+    div.innerHTML = `
+      <div class="window-flex">
+        <div>
+          <label>Window Name</label>
+          <input type="text" class="win-name" placeholder="Window name" />
+        </div>
+        <div>
+          <label>Blind Type</label>
+          <select class="win-blind-type">
+            <option value="Zebra">Zebra</option>
+            <option value="Roller">Roller</option>
+            <option value="Shangri-La">Shangri-La</option>
+          </select>
+        </div>
+        <div>
+          <label>Cassette Shape</label>
+          <select class="win-cassette">
+            <option value="Round">Round</option>
+            <option value="Square">Square</option>
+          </select>
+        </div>
+        <div>
+          <label>Fabric Type</label>
+          <select class="win-fabric">
+            ${fabricOptions.map(f => `<option value="${f}">${f}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label>Chain/Motor Side</label>
+          <select class="win-chain-side">
+            <option value="Right">Right</option>
+            <option value="Left">Left</option>
+          </select>
+        </div>
+        <div>
+          <label>Width (m)</label>
+          <input type="number" class="win-width" step="0.0001" min="0" placeholder="Width" />
+        </div>
+        <div>
+          <label>Length (m)</label>
+          <input type="number" class="win-length" step="0.0001" min="0" placeholder="Length" />
+        </div>
+        <div>
+          <label>Motorized</label>
+          <select class="win-motorized">
+            <option value="No">No</option>
+            <option value="Yes">Yes</option>
+          </select>
+        </div>
+        <div style="flex-basis:100px; display:flex; flex-direction: column; justify-content:center; align-items:center;">
+          <label>Area (m²)</label>
+          <div class="win-area" style="font-weight:bold; margin-top:6px;">0.0000</div>
+        </div>
+        <div style="flex-basis:120px; display:flex; flex-direction: column; justify-content:center; align-items:center;">
+          <label>Price ($)</label>
+          <div class="win-price" style="font-weight:bold; margin-top:6px;">0.00</div>
+        </div>
+        <div style="flex-basis:50px; display:flex; flex-direction: column; justify-content:center; align-items:center;">
+          <button class="delete-btn" title="Delete Window">&times;</button>
+        </div>
+      </div>
+    `;
 
-    let operation = table.rows[i].cells[4].children[0].value;
-    let price = area * 35;
-    if (operation === "Motorised") {
-      price += 100;
-    }
-    table.rows[i].cells[5].innerHTML = `$${price.toFixed(2)}`;
+    // Attach event listeners
+    const inputs = div.querySelectorAll('input, select');
+    inputs.forEach(input => {
+      input.addEventListener('input', updateAll);
+      input.addEventListener('change', updateAll);
+    });
 
-    totalArea += area;
-    totalPrice += price;
+    // Delete button event
+    div.querySelector('.delete-btn').addEventListener('click', () => {
+      windowsContainer.removeChild(div);
+      updateAll();
+    });
+
+    return div;
   }
 
-  document.getElementById("totalArea").innerHTML = totalArea.toFixed(4);
-  document.getElementById("totalPrice").innerHTML = `$${totalPrice.toFixed(2)}`;
-}
+  function addWindow() {
+    const newRow = createWindowRow(windows.length);
+    windowsContainer.appendChild(newRow);
+    updateAll();
+  }
+
+  function updateAll() {
+    let totalArea = 0;
+    let totalPrice = 0;
+
+    [...windowsContainer.children].forEach(div => {
+      const name = div.querySelector('.win-name').value.trim();
+      const blindType = div.querySelector('.win-blind-type').value;
+      const cassette = div.querySelector('.win-cassette').value;
+      const fabric = div.querySelector('.win-fabric').value;
+      const chainSide = div.querySelector('.win-chain-side').value;
+      const width = parseFloat(div.querySelector('.win-width').value) || 0;
+      const length = parseFloat(div.querySelector('.win-length').value) || 0;
+      const motorized = div.querySelector('.win-motorized').value === "Yes";
+
+      const area = width * length;
+      let price = area * 35;
+      if (motorized) price += 100;
+
+      totalArea += area;
+      totalPrice += price;
+
+      // Update per window area & price display
+      div.querySelector('.win-area').textContent = area.toFixed(4);
+      div.querySelector('.win-price').textContent = price.toFixed(2);
+    });
+
+    totalAreaEl.textContent = totalArea.toFixed(4);
+    totalPriceEl.textContent = totalPrice.toFixed(2);
+
+    // Update quote summary
+    summaryDate.textContent = document.getElementById('quoteDate').value || "";
+    summaryCustomer.textContent = document.getElementById('customerName').value.trim() || "";
+    summaryArea.textContent = totalArea.toFixed(4);
+    summaryPrice.textContent = totalPrice.toFixed(2);
+    quoteSummary.style.display = (totalArea > 0) ? 'block' : 'none';
+  }
+
+  // Export to Excel using SheetJS
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    if (!document.getElementById('quoteDate').value) {
+      alert('Please select a date.');
+      return;
+    }
+    if (!document.getElementById('customerName').value.trim()) {
+      alert('Please enter customer name.');
+      return;
+    }
+    if (windowsContainer.children.length === 0) {
+      alert('Add at least one window.');
+      return;
+    }
+
+    const data = [];
+    // Header row
+    data.push([
+      "Date", "Customer Name", "Window Name", "Blind Type", "Cassette Shape", "Fabric Type", "Chain/Motor Side",
+      "Width (m)", "Length (m)", "Motorized", "Area (m²)", "Price ($)"
+    ]);
+
+    [...windowsContainer.children].forEach(div => {
+      const row = [
+        document.getElementById('quoteDate').value,
+        document.getElementById('customerName').value.trim(),
+        div.querySelector('.win-name').value.trim(),
+        div.querySelector('.win-blind-type').value,
+        div.querySelector('.win-cassette').value,
+        div.querySelector('.win-fabric').value,
+        div.querySelector('.win-chain-side').value,
+        parseFloat(div.querySelector('.win-width').value) || 0,
+        parseFloat(div.querySelector('.win-length').value) || 0,
+        div.querySelector('.win-motorized').value,
+        parseFloat(div.querySelector('.win-area').textContent),
+        parseFloat(div.querySelector('.win-price').textContent)
+      ];
+      data.push(row);
+    });
+
+    // Add totals row
+    data.push([
+      "", "", "TOTAL", "", "", "", "",
+      "", "",
+      "",
+      parseFloat(totalAreaEl.textContent),
+      parseFloat(totalPriceEl.textContent)
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Blinds Quote");
+    XLSX.writeFile(wb, `Blinds_Quote_${document.getElementById('customerName').value.trim().replace(/\s+/g,'_')}_${document.getElementById('quoteDate').value}.xlsx`);
+  });
+
+  // Initialize with one window row
+  addWindow();
 </script>
 
 </body>
